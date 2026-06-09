@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D 5E 角色构建 (Apple Store 风格)</title>
+    <style>
+        /* Apple 风格全局设定 */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #f5f5f7; 
+            color: #1d1d1f; 
+            margin: 0; 
+            padding: 60px 20px; 
+            line-height: 1.47059;
+        }
+        .max-w { max-width: 740px; margin: 0 auto; }
+        
+        h1 { text-align: center; font-size: 40px; font-weight: 600; letter-spacing: -0.002em; margin-bottom: 50px; }
+        
+        /* 阶段卡片样式 */
+        .section { 
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 18px; 
+            padding: 40px; 
+            margin-bottom: 24px; 
+            box-shadow: 0 4px 14px rgba(0,0,0,0.04); 
+            
+            /* 隐藏/展示动画逻辑 */
+            display: none; 
+            opacity: 0; 
+            transform: translateY(20px); 
+            transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .section.visible { 
+            display: block; 
+        }
+        .section.animate-in {
+            opacity: 1; 
+            transform: translateY(0);
+        }
+
+        .section h2 { 
+            font-size: 24px; 
+            font-weight: 600; 
+            margin-top: 0; 
+            margin-bottom: 24px; 
+            color: #1d1d1f;
+        }
+        .section-desc { font-size: 14px; color: #86868b; margin-top: -15px; margin-bottom: 20px;}
+
+        /* 表单控件 */
+        .form-group { margin-bottom: 24px; }
+        label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #1d1d1f; }
+        input[type="text"], select, input[type="number"] { 
+            width: 100%; 
+            padding: 16px; 
+            font-size: 17px; 
+            border: 1px solid #d2d2d7; 
+            border-radius: 12px; 
+            background: #fff; 
+            color: #1d1d1f; 
+            box-sizing: border-box; 
+            outline: none; 
+            transition: all 0.2s; 
+            -webkit-appearance: none; /* 移除iOS默认样式 */
+        }
+        select {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            background-size: 16px;
+        }
+        input:focus, select:focus { border-color: #0071e3; box-shadow: 0 0 0 4px rgba(0,113,227,0.1); }
+        
+        /* 属性六维网格 */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-top: 20px; }
+        .stat-box { border: 1px solid #d2d2d7; padding: 12px 16px; border-radius: 12px; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: border-color 0.2s;}
+        .stat-box:focus-within { border-color: #0071e3; }
+        .stat-box label { margin: 0 0 8px 0; font-size: 14px; color: #86868b; text-align: center; }
+        .stat-box input { width: 100%; text-align: center; font-weight: 600; font-size: 22px; padding: 8px; border: none; background: transparent; }
+        .stat-box input:focus { box-shadow: none; border-color: transparent;}
+
+        /* 按钮 */
+        .btn-continue { 
+            background: #0071e3; color: #fff; border: none; padding: 14px 28px; font-size: 17px; 
+            border-radius: 980px; cursor: pointer; font-weight: 400; transition: background 0.2s; 
+            display: inline-block; margin-top: 10px; width: auto;
+        }
+        .btn-continue:hover { background: #0077ed; }
+        .btn-continue:active { transform: scale(0.98); }
+        
+        .btn-roll {
+            background: #e8e8ed; color: #1d1d1f; border: none; padding: 14px 24px; font-size: 15px;
+            border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.2s; width: 100%;
+            margin-bottom: 20px;
+        }
+        .btn-roll:hover { background: #d2d2d7; }
+        .btn-roll:active { transform: scale(0.98); }
+
+        /* 隐藏包裹器（用于点击后隐藏继续按钮） */
+        .btn-wrapper { text-align: center; margin-top: 30px; border-top: 1px solid #d2d2d7; padding-top: 30px; }
+
+        /* 结果展示区 */
+        .results-header { text-align: center; margin-bottom: 30px; }
+        .results-header h2 { font-size: 32px; font-weight: 600; margin: 0; color: #1d1d1f; }
+        .results-header p { font-size: 17px; color: #86868b; margin: 8px 0 0 0; }
+        
+        .results-overview { display: flex; gap: 16px; margin-bottom: 30px; justify-content: center;}
+        .overview-card { flex: 1; background: #fff; border: 1px solid #d2d2d7; border-radius: 16px; padding: 20px; text-align: center; }
+        .overview-card span { display: block; font-size: 32px; font-weight: 600; color: #1d1d1f; margin-top: 8px; }
+        .overview-card label { margin: 0; font-size: 12px; color: #86868b; }
+
+        .attr-result { background: #fff; border: 1px solid #d2d2d7; border-radius: 16px; padding: 24px; }
+        .attr-result h3 { margin: 0 0 16px 0; font-size: 17px; border-bottom: 1px solid #f5f5f7; padding-bottom: 12px; }
+        .attr-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f5f5f7; }
+        .attr-row:last-child { border-bottom: none; }
+        .attr-name { font-weight: 600; width: 90px; color: #1d1d1f;}
+        .attr-val { flex: 1; color: #86868b; font-size: 15px;}
+        .attr-mod { font-weight: 600; font-size: 18px; color: #0071e3; width: 60px; text-align: right; background: rgba(0,113,227,0.1); padding: 4px 10px; border-radius: 8px;}
+    </style>
+</head>
+<body>
+
+<div class="max-w">
+    <h1>构建你的英雄</h1>
+
+    <div id="step1" class="section visible animate-in">
+        <h2>1. 基础档案</h2>
+        <div class="form-group">
+            <label>角色姓名</label>
+            <input type="text" id="charName" placeholder="为你的冒险者起个名字..." oninput="autoUpdate()">
+        </div>
+        <div class="form-group">
+            <label>性别</label>
+            <select id="charGender" onchange="autoUpdate()">
+                <option value="男">男</option>
+                <option value="女">女</option>
+                <option value="保密">其他 / 保密</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>初始职业</label>
+            <select id="classSelect" onchange="autoUpdate()">
+                <option value="fighter">战士 (Fighter)</option>
+                <option value="barbarian">野蛮人 (Barbarian)</option>
+                <option value="paladin">圣武士 (Paladin)</option>
+                <option value="ranger">游侠 (Ranger)</option>
+                <option value="bard">吟游诗人 (Bard)</option>
+                <option value="cleric">牧师 (Cleric)</option>
+                <option value="druid">德鲁伊 (Druid)</option>
+                <option value="monk">武僧 (Monk)</option>
+                <option value="rogue">游荡者 (Rogue)</option>
+                <option value="warlock">邪术师 (Warlock)</option>
+                <option value="sorcerer">术士 (Sorcerer)</option>
+                <option value="wizard">法师 (Wizard)</option>
+            </select>
+        </div>
+        <div class="btn-wrapper" id="wrap-btn1">
+            <button class="btn-continue" onclick="reveal(2)">继续选择种族</button>
+        </div>
+    </div>
+
+    <div id="step2" class="section">
+        <h2>2. 血脉与种族</h2>
+        <p class="section-desc">种族将决定你的天生特质与属性加成。</p>
+        <div class="form-group">
+            <select id="raceSelect" onchange="autoUpdate()">
+                <option value="human">人类 (全核心属性 +1)</option>
+                <option value="dwarf">矮人 (体质 +2)</option>
+                <option value="elf">精灵 (敏捷 +2)</option>
+                <option value="halfling">半身人 (敏捷 +2)</option>
+                <option value="dragonborn">龙裔 (力量 +2, 魅力 +1)</option>
+                <option value="gnome">侏儒 (智力 +2)</option>
+                <option value="halfelf">半精灵 (魅力 +2, 暂计)</option>
+                <option value="halforc">半兽人 (力量 +2, 体质 +1)</option>
+                <option value="tiefling">提夫林 (智力 +1, 魅力 +2)</option>
+            </select>
+        </div>
+        <div class="btn-wrapper" id="wrap-btn2">
+            <button class="btn-continue" onclick="reveal(3)">继续分配属性</button>
+        </div>
+    </div>
+
+    <div id="step3" class="section">
+        <h2>3. 核心属性</h2>
+        <p class="section-desc">直接在输入框输入，或使用标准的 4d6 骰点法随机生成。</p>
+        
+        <button class="btn-roll" onclick="rollAllStats()">🎲 标准骰点 (4d6 去除最低骰)</button>
+
+        <div class="stats-grid">
+            <div class="stat-box"><label>力量 STR</label><input type="number" id="base_str" value="10" oninput="autoUpdate()"></div>
+            <div class="stat-box"><label>敏捷 DEX</label><input type="number" id="base_dex" value="10" oninput="autoUpdate()"></div>
+            <div class="stat-box"><label>体质 CON</label><input type="number" id="base_con" value="10" oninput="autoUpdate()"></div>
+            <div class="stat-box"><label>智力 INT</label><input type="number" id="base_int" value="10" oninput="autoUpdate()"></div>
+            <div class="stat-box"><label>感知 WIS</label><input type="number" id="base_wis" value="10" oninput="autoUpdate()"></div>
+            <div class="stat-box"><label>魅力 CHA</label><input type="number" id="base_cha" value="10" oninput="autoUpdate()"></div>
+        </div>
+
+        <div class="btn-wrapper" id="wrap-btn3">
+            <button class="btn-continue" onclick="reveal(4)">完成构建，查看面板</button>
+        </div>
+    </div>
+
+    <div id="step4" class="section" style="background: #ffffff;">
+        <div class="results-header">
+            <h2 id="res_title">阿拉贡</h2>
+            <p id="res_subtitle">男 | 人类 | 战士 (1级)</p>
+        </div>
+
+        <div class="results-overview">
+            <div class="overview-card"><label>最大生命值 (HP)</label><span id="res_hp">10</span></div>
+            <div class="overview-card"><label>护甲等级 (AC)</label><span id="res_ac">10</span></div>
+            <div class="overview-card"><label>熟练加值 (PB)</label><span style="color:#0071e3;">+2</span></div>
+        </div>
+
+        <div class="attr-result">
+            <h3>综合属性调整值</h3>
+            <div id="res_stats_container">
+                </div>
+            <p style="font-size: 12px; color: #86868b; margin-top: 16px; margin-bottom: 0;">
+                <span style="color:#f39c12; font-size:14px;">★</span> 星号代表该职业天生熟练的豁免检定。你的最终豁免加值为：调整值 + 熟练加值。
+            </p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const statNames = { str: "力量", dex: "敏捷", con: "体质", int: "智力", wis: "感知", cha: "魅力" };
+    const classNames = { fighter: "战士", barbarian: "野蛮人", paladin: "圣武士", ranger: "游侠", bard: "吟游诗人", cleric: "牧师", druid: "德鲁伊", monk: "武僧", rogue: "游荡者", warlock: "邪术师", sorcerer: "术士", wizard: "法师" };
+    const raceNames = { human: "人类", dwarf: "矮人", elf: "精灵", halfling: "半身人", dragonborn: "龙裔", gnome: "侏儒", halfelf: "半精灵", halforc: "半兽人", tiefling: "提夫林" };
+
+    const raceBonuses = {
+        human: { str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1 },
+        dwarf: { str: 0, dex: 0, con: 2, int: 0, wis: 0, cha: 0 },
+        elf: { str: 0, dex: 2, con: 0, int: 0, wis: 0, cha: 0 },
+        halfling: { str: 0, dex: 2, con: 0, int: 0, wis: 0, cha: 0 },
+        dragonborn: { str: 2, dex: 0, con: 0, int: 0, wis: 0, cha: 1 },
+        gnome: { str: 0, dex: 0, con: 0, int: 2, wis: 0, cha: 0 },
+        halfelf: { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 2 },
+        halforc: { str: 2, dex: 0, con: 1, int: 0, wis: 0, cha: 0 },
+        tiefling: { str: 0, dex: 0, con: 0, int: 1, wis: 0, cha: 2 }
+    };
+
+    const classBaseHp = { barbarian: 12, fighter: 10, paladin: 10, ranger: 10, bard: 8, cleric: 8, druid: 8, monk: 8, rogue: 8, warlock: 8, sorcerer: 6, wizard: 6 };
+    const classSaves = { barbarian: ["str", "con"], fighter: ["str", "con"], paladin: ["wis", "cha"], ranger: ["str", "dex"], bard: ["dex", "cha"], cleric: ["wis", "cha"], druid: ["int", "wis"], monk: ["str", "dex"], rogue: ["dex", "int"], warlock: ["wis", "cha"], sorcerer: ["con", "cha"], wizard: ["int", "wis"] };
+
+    let unlockedStep = 1; // 记录当前解锁到的最高阶段
+
+    // 揭开新阶段
+    function reveal(stepNum) {
+        if (stepNum > unlockedStep) {
+            unlockedStep = stepNum;
+        }
+        
+        const el = document.getElementById('step' + stepNum);
+        // 显示元素
+        el.style.display = 'block';
+        
+        // 使用 timeout 触发 CSS 的过渡动画
+        setTimeout(() => {
+            el.classList.add('animate-in');
+            // 平滑滚动至新展开的板块
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 10);
+
+        // 隐藏上一个阶段的“继续”按钮，让界面变干净
+        const prevBtnWrap = document.getElementById('wrap-btn' + (stepNum - 1));
+        if(prevBtnWrap) {
+            prevBtnWrap.style.display = 'none';
+        }
+
+        // 如果展开的是最后的结果页，立刻计算一次
+        if (stepNum === 4) {
+            generateResults();
+        }
+    }
+
+    // 表单内容改变时自动计算 (仅当已解锁结果页时生效)
+    function autoUpdate() {
+        if (unlockedStep >= 4) {
+            generateResults();
+        }
+    }
+
+    // 掷骰子逻辑：4d6 去最低
+    function roll4d6DropLowest() {
+        let rolls = [
+            Math.floor(Math.random() * 6) + 1,
+            Math.floor(Math.random() * 6) + 1,
+            Math.floor(Math.random() * 6) + 1,
+            Math.floor(Math.random() * 6) + 1
+        ];
+        rolls.sort((a, b) => b - a);
+        return rolls[0] + rolls[1] + rolls[2];
+    }
+
+    function rollAllStats() {
+        const stats = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+        stats.forEach(stat => {
+            document.getElementById('base_' + stat).value = roll4d6DropLowest();
+        });
+        autoUpdate(); // 掷骰后自动刷新结果
+    }
+
+    function getModifier(score) { return Math.floor((score - 10) / 2); }
+    function formatMod(mod) { return mod >= 0 ? "+" + mod : mod; }
+
+    // 生成并渲染最终结果
+    function generateResults() {
+        const name = document.getElementById('charName').value.trim() || "无名冒险者";
+        const gender = document.getElementById('charGender').value;
+        const clsKey = document.getElementById('classSelect').value;
+        const raceKey = document.getElementById('raceSelect').value;
+
+        // 顶栏更新
+        document.getElementById('res_title').innerText = name;
+        document.getElementById('res_subtitle').innerText = `${gender} | ${raceNames[raceKey]} | ${classNames[clsKey]} (1级)`;
+
+        const stats = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+        const bonus = raceBonuses[raceKey];
+        const saveProfs = classSaves[clsKey];
+
+        let htmlContent = "";
+        let finalConMod = 0;
+        let finalDexMod = 0;
+
+        stats.forEach(stat => {
+            let baseVal = parseInt(document.getElementById('base_' + stat).value) || 0;
+            let finalVal = baseVal + bonus[stat];
+            let mod = getModifier(finalVal);
+            
+            if (stat === 'con') finalConMod = mod;
+            if (stat === 'dex') finalDexMod = mod;
+
+            let isSaveProf = saveProfs.includes(stat);
+            let profStar = isSaveProf ? "<span style='color:#f39c12; margin-left:4px;' title='熟练豁免'>★</span>" : "";
+            let bonusStr = bonus[stat] > 0 ? `<span style="color:#0071e3;">(+${bonus[stat]} 种族)</span>` : "";
+
+            htmlContent += `
+                <div class="attr-row">
+                    <div class="attr-name">${statNames[stat]} ${profStar}</div>
+                    <div class="attr-val">总和 <b>${finalVal}</b> &nbsp;&nbsp; (基础 ${baseVal} ${bonusStr})</div>
+                    <div class="attr-mod">${formatMod(mod)}</div>
+                </div>
+            `;
+        });
+
+        document.getElementById('res_stats_container').innerHTML = htmlContent;
+
+        // HP 和 AC 更新
+        let hp = classBaseHp[clsKey] + finalConMod;
+        document.getElementById('res_hp').innerText = hp < 1 ? 1 : hp;
+        document.getElementById('res_ac').innerText = 10 + finalDexMod;
+    }
+</script>
+
+</body>
+</html>
